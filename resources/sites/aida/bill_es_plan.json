@@ -1,0 +1,38 @@
+[
+    {
+        "name": "structure",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "date",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "recipient",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "transactions",
+        "list": [
+            {
+                "name": "category",
+                "autonext": true,
+                "tabs": 1,
+                "delay": 300,
+                "method": "simpleinput"
+            },
+            {
+                "name": "quantity",
+                "autonext": false,
+                "tabs": 3,
+                "method": "simpleinput"
+            }
+        ]
+    }
+]

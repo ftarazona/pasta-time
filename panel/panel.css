@@ -1,0 +1,206 @@
+
+/* Optional: import a modern font */
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --file-bg: #ffffff;
+    --file-border: #e8eaf0;
+    --file-text: #252a38;
+    --file-muted: #9299aa;
+
+    --file-selected-bg: #f0f2ff;
+    --file-selected-border: #c7ccff;
+    --file-selected-text: #4246a5;
+
+    --visualizer-highlighted-bg: #f0f2ff;
+
+    --summary-bg: #e8ebff;
+    --summary-text: #50558d;
+
+    --delete-hover: #fff0f0;
+    --delete-color: #d65b65;
+}
+
+/* File list */
+#file-list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px;
+    font-family: 'Inter', sans-serif;
+}
+
+#visualizer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    padding: 0px;
+    font-family: 'Inter', sans-serif;
+}
+
+
+/* File item */
+.file-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26px;
+    align-items: center;
+    column-gap: 5px;
+
+    padding: 6px 8px;
+    border: 1px solid var(--file-border);
+    border-radius: 7px;
+
+    background: var(--file-bg);
+    color: var(--file-text);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.visualizer-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26px;
+    align-items: center;
+    column-gap: 5px;
+
+    padding: 1px 1px;
+    border: 1px solid var(--file-border);
+}
+
+.visualizer-highlighted {
+    background: var(--visualizer-highlighted-bg);
+}
+
+/* File information grid */
+.file-description {
+    display: grid;
+    grid-template-columns: 65px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* ID */
+.file-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--file-muted);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Name */
+.file-name {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Delete */
+.file-delete {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+
+    background: transparent;
+    color: var(--file-muted);
+    font-size: 12px;
+
+    cursor: pointer;
+    opacity: 0.6;
+
+    transition:
+        background-color 150ms ease,
+        color 150ms ease,
+        opacity 150ms ease;
+}
+
+.file-delete:hover {
+    background: var(--delete-hover);
+    color: var(--delete-color);
+    opacity: 1;
+}
+
+/* Selected item */
+.file-item:has(.file-summary) {
+    background: var(--file-selected-bg);
+    border-color: var(--file-selected-border);
+    box-shadow: 0 1px 4px rgba(75, 80, 160, 0.07);
+}
+
+.file-item:has(.file-summary) .file-id {
+    color: var(--file-selected-text);
+}
+
+.file-item:has(.file-summary) .file-name {
+    color: var(--file-selected-text);
+}
+
+/* Summary */
+.file-summary {
+    grid-column: 1 / -1;
+
+    margin-top: 6px;
+    padding: 7px 9px;
+
+    border-radius: 5px;
+    background: var(--summary-bg);
+    color: var(--summary-text);
+
+    font-size: 11px;
+    line-height: 1.45;
+
+    animation: summary-appear 180ms ease both;
+}
+
+@keyframes summary-appear {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Focus */
+.file-description:focus-visible,
+.file-delete:focus-visible {
+    outline: 2px solid #777ce5;
+    outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .file-item,
+    .file-delete {
+        transition: none;
+    }
+
+    .file-summary {
+        animation: none;
+    }
+}

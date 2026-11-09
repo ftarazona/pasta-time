@@ -1,0 +1,90 @@
+{
+    "continueButton": [
+        ["button[alt='Continuer']", 0]
+    ],
+
+    "civility": [
+        ["select[name='contactCreation.civCd']", 0]
+    ],
+    "firstName": [
+        ["input[id='contactCreation.prenom']", 0]
+    ],
+    "lastName": [
+        ["input[id='contactCreation.nomNaissance']", 0]
+    ],
+    "birthDate": [
+        ["input[id='contactCreation.dateNaissance']", 0]
+    ],
+    "birthCountry": [
+        ["select[name='contactCreation.paysNaissanceCode']", 0]
+    ],
+    "birthDepartment": [
+        [".mdl-textfield__input", 5]
+    ],
+    "birthCity": [
+        [".mdl-textfield__input", 6]
+    ],
+
+    "currentAddress": [
+        ["input[id='contactCreation.numVoie']", 0]
+    ],
+    "currentCity": [
+        [".mdl-textfield__input", 3]
+    ],
+    "currentCountry": [
+        ["select[name='contactCreation.codePays']", 0]
+    ],
+    "volunteerTelNumCode": [
+        ["select[name='contactCreation.codCodeTelephone']", 0]
+    ],
+    "volunteerTelNum": [
+        ["input[id='contactCreation.telephone']", 0]
+    ],
+    "volunteerTelNumType": [
+        ["select[name='contactCreation.tymCodeTelephone']", 0]
+    ],
+    "volunteerEmail": [
+        ["input[id='contactCreation.email']", 0]
+    ],
+    "volunteerEmailType": [
+        ["select[name='contactCreation.tymCodeEmail']", 0]
+    ],
+
+    "pacCivility": [
+        ["select[name='contactCreation.pacCivCd']", 0]
+    ],
+    "pacFirstName": [
+        ["input[id='contactCreation.pacPrenom']", 0]
+    ],
+    "pacLastName": [
+        ["input[id='contactCreation.pacNom']", 0]
+    ],
+    "pacLink": [
+        ["select[name='contactCreation.pacParId']", 0]
+    ],
+    "pacAddress": [
+        ["input[id='contactCreation.pacNumeroVoie']", 0]
+    ],
+    "pacCity": [
+        [".mdl-textfield__input", 5]
+    ],
+    "pacCountry": [
+        ["select[name='contactCreation.pacCodePays']", 0]
+    ],
+    "pacTelNumCode": [
+        ["select[name='contactCreation.pacCodCodeTelephone']", 0]
+    ],
+    "pacTelNum": [
+        ["input[id='contactCreation.pacTelephone']", 0]
+    ],
+    "pacEmail": [
+        ["input[id='contactCreation.pacEmail']", 0]
+    ],
+    
+    "entryDate": [
+        ["input[id='contactCreation.dateEntree']", 0]
+    ],
+    "activities": [
+        ["div[data-focus='tree']", 0]
+    ]
+}

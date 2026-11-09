@@ -1,0 +1,62 @@
+[
+    {
+        "name": "structure",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "supplier",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "date",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "deliveryNumber",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "dnDate",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "origin",
+        "autonext": false,
+        "tabs": 3,
+        "method": "simpleinput"
+    },
+    {
+        "name": "lines",
+        "list": [
+            {
+                "name": "category",
+                "autonext": true,
+                "tabs": 2,
+                "delay": 300,
+                "method": "simpleinput"
+            },
+            {
+                "name": "quantity",
+                "autonext": true,
+                "tabs": 1,
+                "method": "simpleinput"
+            },
+            {
+                "name": "status",
+                "autonext": false,
+                "tabs": 1,
+                "method": "simpleinput"
+            }
+        ]
+    }
+]

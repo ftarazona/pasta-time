@@ -1,0 +1,38 @@
+[
+    {
+        "name": "structure",
+        "autonext": false,
+        "tabs": 2,
+        "method": "simpleinput"
+    },
+    {
+        "name": "dest",
+        "autonext": false,
+        "tabs": 4,
+        "method": "simpleinput"
+    },
+    {
+        "name": "date",
+        "autonext": false,
+        "tabs": 1,
+        "method": "simpleinput"
+    },
+    {
+        "name": "lines",
+        "list": [
+            {
+                "name": "category",
+                "autonext": true,
+                "tabs": 2,
+                "delay": 300,
+                "method": "simpleinput"
+            },
+            {
+                "name": "quantity",
+                "autonext": false,
+                "tabs": 1,
+                "method": "simpleinput"
+            }
+        ]
+    }
+]

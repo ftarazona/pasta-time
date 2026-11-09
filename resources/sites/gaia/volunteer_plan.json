@@ -1,0 +1,140 @@
+[
+    {
+        "name": "civility",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "firstName",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "lastName",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "birthDate",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "birthCountry",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "birthDepartment",
+        "autonext": false,
+        "method": "gaialistinput"
+    },
+    {
+        "name": "birthCity",
+        "autonext": false,
+        "method": "gaialistinput"
+    },
+
+    {
+        "name": "currentAddress",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "currentCity",
+        "autonext":false,
+        "method": "gaialistinput"
+    },
+    {
+        "name": "currentCountry",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "volunteerTelNumType",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "volunteerTelNumCode",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "volunteerTelNum",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "volunteerEmailType",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "volunteerEmail",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+
+    {
+        "name": "pacCivility",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "pacFirstName",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "pacLastName",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "pacLink",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "pacAddress",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "pacCity",
+        "autonext": false,
+        "method": "gaialistinput"
+    },
+    {
+        "name": "pacCountry",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "pacTelNumCode",
+        "autonext": false,
+        "method": "simpleselect"
+    },
+    {
+        "name": "pacTelNum",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "pacEmail",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+
+    {
+        "name": "entryDate",
+        "autonext": false,
+        "method": "simpleinput"
+    },
+    {
+        "name": "activities",
+        "autonext": false,
+        "method": "gaiaactivityfill"
+    }
+]

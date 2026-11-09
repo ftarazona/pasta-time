@@ -1,0 +1,38 @@
+{
+    "structure":  [
+        [".s-h1", 0], 
+        [".s-field-input", 0]
+    ],
+    "date":       [
+        [".s-h1", 0], 
+        [".s-field-input", 3]
+    ],
+    "recipient":  [
+        [".s-h1", 0], 
+        [".s-field-input", 4]
+    ],
+
+    "category":   [
+        [".s-h1", 1], 
+        [".s-grid-slot-table-fixed", 0], 
+        [".s-inplace-input", -1]
+    ],
+    "quantity":   [
+        [".s-h1", 1], 
+        [".s-grid-slot-table-scroll", 0], 
+        [".s-grid-row", -1],
+        [".s-inplace-input", 2]
+    ],
+    "gup":   [
+        [".s-h1", 1], 
+        [".s-grid-slot-table-scroll", 0], 
+        [".s-grid-row", -1],
+        [".s-inplace-input", 3]
+    ],
+    "discount":   [
+        [".s-h1", 1], 
+        [".s-grid-slot-table-scroll", 0], 
+        [".s-grid-row", -1],
+        [".s-inplace-input", 4]
+    ]
+}

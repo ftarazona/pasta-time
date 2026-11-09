@@ -1,0 +1,118 @@
+{
+    "manifest_version": 3,
+
+    "name": "Pasta Time !",
+    "description": "Pour gagner un peu de temps (quelques heures seulement) quand il faut rentrer des données à la main",
+    "version": "0.1",
+
+    "icons": {
+        "48": "icons/icon-48.png",
+        "96": "icons/icon-96.png"
+    },
+
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage",
+        "tabs"
+    ],
+
+    "sidebar_action": {
+        "default_icon": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png"
+        },
+        "default_title": "Pasta Time",
+        "default_panel": "panel/panel.html",
+        "open_at_install": false
+    },
+
+    "content_scripts": [
+        {
+            "matches": [
+                "*://croixrouge-x3-prd.em.cloud-by-sage.fr/*",
+                "*://gaia.croix-rouge.fr/*"
+            ],
+            "js": [
+                "utils/actions.js",
+                "content/ContentStore.js",
+                "content/FieldSearcher.js",
+                "content/FillMethod.js",
+                "content/Engine.js",
+                "content/Cursor.js"
+            ]
+        },
+        {
+            "matches": [
+                "*://croixrouge-x3-prd.em.cloud-by-sage.fr/*"
+            ],
+            "js": [
+                "content/sites/aida/AidaEngine.js"
+            ]
+        },
+        {
+            "matches": [
+                "*://gaia.croix-rouge.fr/*"
+            ],
+            "js": [
+                "content/sites/gaia/GaiaFillMethods.js",
+                "content/sites/gaia/GaiaEngine.js"
+            ]
+        }
+    ],
+
+    "background": {
+        "scripts": ["background.js"]
+    },
+
+    "commands": {
+        "action-1": {
+            "suggested_key": { "default": "Ctrl+Alt+1" },
+            "description": "Commande personnalisée 1"
+        },
+        "action-2": {
+            "suggested_key": { "default": "Ctrl+Alt+2" },
+            "description": "Commande personnalisée 2"
+        },
+        "action-3": {
+            "suggested_key": { "default": "Ctrl+Alt+3" },
+            "description": "Commande personnalisée 3"
+        },
+        "action-4": {
+            "suggested_key": { "default": "Ctrl+Alt+4" },
+            "description": "Commande personnalisée 4"
+        },
+        "action-5": {
+            "suggested_key": { "default": "Ctrl+Alt+5" },
+            "description": "Commande personnalisée 5"
+        }
+    },
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "pastatime@mozilla.org",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        }
+    },
+
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "resources/sites/aida/*.json"
+            ],
+            "matches": [
+                "*://croixrouge-x3-prd.em.cloud-by-sage.fr/*"
+            ]
+        },
+        {
+            "resources": [
+                "resources/sites/gaia/*.json"
+            ],
+            "matches": [
+                "*://gaia.croix-rouge.fr/*"
+            ]
+        }
+    ]
+}
