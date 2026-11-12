@@ -34,6 +34,7 @@
                 "*://gaia.croix-rouge.fr/*"
             ],
             "js": [
+                "utils/messaging.js",
                 "utils/actions.js",
                 "content/ContentStore.js",
                 "content/FieldSearcher.js",
@@ -62,7 +63,10 @@
     ],
 
     "background": {
-        "scripts": ["background.js"]
+        "scripts": [
+            "utils/messaging.js",
+            "background.js"
+        ]
     },
 
     "commands": {
@@ -85,6 +89,14 @@
         "action-5": {
             "suggested_key": { "default": "Ctrl+Alt+5" },
             "description": "Commande personnalisée 5"
+        },
+        "action-6": {
+            "suggested_key": { "default": "Ctrl+Alt+6" },
+            "description": "Commande personnalisée 6"
+        },
+        "action-7": {
+            "suggested_key": { "default": "Ctrl+Alt+7" },
+            "description": "Commande personnalisée 7"
         }
     },
 

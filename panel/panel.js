@@ -3,230 +3,155 @@ const noMenu = document.querySelector("#no-menu");
 
 const fileInput = document.querySelector("#file-input");
 const visualizerSection = document.querySelector("#visualizer-section");
-const fileListSection = document.querySelector("#file-list-section");
-
-class SidebarApp {
-    
-    constructor() {
-        this.tabId;
-    }
+const itemListSection = document.querySelector("#file-list-section");
 
 
+/** onBackgroundMessage(message) -> ()
+ * 
+ * Handles messages received from background.
+ */
+function onBackgroundMessage(message) {
+    console.debug("Sidebar: Message received from background", message);
+    const type = message.type;
 
-    async sendToEngine(files) {
-        console.log("Sidebar: Send files to engine", files);
+    if(type === Messaging.ENGINE_INFO_UPDATED) {
 
-        const response = await browser.tabs.sendMessage(
-            this.tabId,
-            { type: "FILES_UPLOADED", files }
-        );
-
-        this.displayResponse(response);
-    }
-
-    async getFiles() {
-        console.log("Sidebar: Get files from engine");
-
-        await browser.tabs.sendMessage(
-            this.tabId,
-            { type: "GET_FILES"}
-        ).then(
-            response => this.displayResponse(response)
-        ).catch(
-            _ => this.displayNoEngine()
-        );
-    }
-
-    async onTabActivated(tab) {
-        console.log("Sidebar: Tab opened/switched", tab);
-
-        this.tabId = tab.tabId;
-        await this.getFiles();
-    }
-
-    async init() {
-        const [tab] = await browser.tabs.query({
-            active: true,
-            currentWindow: true
-        });
-        this.tabId = tab.id;
+        //Received when an engine notifies its data store has modified
+        //items or its cursor has moved
+        const { itemsInfo, visualizer } = message.info;
+        displayItems(itemsInfo);
+        displayVisualizer(visualizer);
         
-        fileInput.addEventListener("change", () => {
-            this.sendToEngine(fileInput.files);
-        })
+    } else if(type === Messaging.SIDEBAR_NO_ENGINE_AVAILABLE) {
 
-        browser.tabs.onActivated.addListener(
-            this.onTabActivated.bind(this)
-        );
+        //Received when no engine is available
+        displayNoEngine();
 
-        browser.tabs.onCreated.addListener(
-            this.onTabActivated.bind(this)
-        );
-
-        browser.runtime.onMessage.addListener(
-            this.onMessage.bind(this)
-        );
-
-        await this.getFiles();
-    }
-
-
-
-    onSetFiles({content}) {
-        console.log("Sidebar: Set files", content);
-
-        this.displayFiles(content);
-        return { success: true };
-    }
-
-    onSetVisualizer({content}) {
-        console.log("Sidebar: Set visualizer", content);
-
-        this.displayVisualizer(content);
-        return { success: true };
-    }
-
-    async onMessage(message, sender) {
-        console.log("Sidebar: message received:", message, sender);
-
-        const type = message.type;
-        this.tabId = sender.tab.id;
-
-        const methodMatches = {
-            "SET_FILES": "SetFiles",
-            "SET_VISUALIZER": "SetVisualizer"
-        };
-
-        const methodName = methodMatches[type];
-        const response = methodName != null
-            ? (await this["on" + methodName](message))
-            : ({ success: false, error: `Sidebar: Unknown message type: ${type}` })
-        
-        return Promise.resolve(response);
-    }
-
-
-
-    async onToggle(id) {
-        await browser.tabs.sendMessage(
-            this.tabId,
-            { type: "TOGGLE_ID", id }
-        );
-        await this.getFiles();
-    }
-
-    async onRemove(id) {
-        await browser.tabs.sendMessage(
-            this.tabId,
-            { type: "REMOVE_ID", id }
-        );
-        await this.getFiles();
-    }
-
-    displayNoEngine() {
-        noMenu.hidden = false;
-        mainMenu.hidden = true;
-
-        fileListSection.innerHTML = "";
-    }
-
-    displayVisualizer(content) {
-        console.log("Sidebar: Displaying visualizer", content);
-
-        visualizerSection.innerHTML = "";
-
-        for(var i = 0; i < content.length; i++) {
-            const [name, value] = content[i];
-
-            const itemDiv = document.createElement("div");
-            itemDiv.className = "visualizer-item";
-            if(i === 2)
-                itemDiv.classList.add("visualizer-highlighted");
-
-            const nameDiv = document.createElement("div");
-            nameDiv.className = "visualizer-name";
-            nameDiv.appendChild(document.createTextNode(name ?? "-"));
-
-            const valueDiv = document.createElement("div");
-            valueDiv.className = "visualizer-value";
-            valueDiv.appendChild(document.createTextNode(value ?? ""));
-
-            itemDiv.appendChild(nameDiv);
-            itemDiv.appendChild(valueDiv);
-
-            visualizerSection.appendChild(itemDiv);
-        }
-    }
-
-    displayFiles(content) {
-        console.log("Sidebar: Displaying files", content);
-        mainMenu.hidden = false;
-        noMenu.hidden = true;
-        
-        fileListSection.innerHTML = "";
-        fileInput.value = "";
-
-        const files = content.files;
-        const selectedId = content.selectedId;
-
-        for(const file of files) {
-            const { id, name, summary } = file;
-
-            const fileIdDiv = document.createElement("div");
-            fileIdDiv.className = "file-id";
-            fileIdDiv.id = "file-id-" + id;
-            fileIdDiv.appendChild(document.createTextNode(id));
-
-            const fileNameDiv = document.createElement("div");
-            fileNameDiv.className = "file-name";
-            fileNameDiv.id = "file-name-" + id;
-            fileNameDiv.appendChild(document.createTextNode(name));
-
-            const fileDescriptionDiv = document.createElement("div");
-            fileDescriptionDiv.className = "file-description";
-            fileDescriptionDiv.id = "file-description-" + id;
-            fileDescriptionDiv.appendChild(fileIdDiv);
-            fileDescriptionDiv.appendChild(fileNameDiv);
-            fileDescriptionDiv.addEventListener(
-                "click", async () => { await this.onToggle(id); }
-            )
-
-            const fileDeleteDiv = document.createElement("div");
-            fileDeleteDiv.className = "file-delete";
-            fileDeleteDiv.id = "file-delete-" + id;
-            fileDeleteDiv.appendChild(document.createTextNode("❌"));
-            fileDeleteDiv.addEventListener(
-                "click", async () => { await this.onRemove(id); }
-            )
-
-            const fileDiv = document.createElement("div");
-            fileDiv.className = "file-item";
-            fileDiv.id = "file-item-" + id;
-            fileDiv.appendChild(fileDescriptionDiv);
-            fileDiv.appendChild(fileDeleteDiv);
-
-            if(id === selectedId) {
-                const fileSummaryDiv = document.createElement("div");
-                fileSummaryDiv.className = "file-summary";
-                fileSummaryDiv.id = "file-summary-" + id;
-                fileSummaryDiv.appendChild(document.createTextNode(summary));
-                
-                fileDiv.appendChild(fileSummaryDiv);
-            }
-
-            fileListSection.appendChild(fileDiv);
-        }
-    }
-
-    displayResponse(response) {
-        if(response.success) {
-            const content = response.content;
-            this.displayFiles(content);
-        } else {
-            this.displayNoEngine();
-        }
     }
 }
 
-const sidebar = new SidebarApp();
-sidebar.init();
+
+//Initialize the port to connect with background when the sidebar is
+//opened
+const port = browser.runtime.connect({ name: "sidebar-port" });
+port.onMessage.addListener(onBackgroundMessage);
+
+
+//Emits a messsage to the engine through the background when an item is 
+//removed
+function onRemove(itemId) {
+    port.postMessage({ type: Messaging.ITEM_REMOVED, itemId });
+}
+
+//Emits a messsage to the engine through the background when an item is 
+//selected/deselected
+function onToggle(itemId) {
+    port.postMessage({ type: Messaging.ITEM_TOGGLED, itemId});
+}
+
+//Emits a messsage to the engine through the background when files are
+//uploaded
+function onFilesUploaded(files) {
+    port.postMessage({ type: Messaging.FILES_UPLOADED, files });
+}
+
+fileInput.addEventListener("change", () => {
+    this.onFilesUploaded(fileInput.files);
+})
+
+
+
+function displayNoEngine() {
+    noMenu.hidden = false;
+    mainMenu.hidden = true;
+
+    itemListSection.innerHTML = "";
+}
+
+function displayVisualizer(visualizer=[null, null, null, null, null]) {
+    visualizerSection.innerHTML = "";
+
+    for(var i = 0; i < visualizer.length; i++) {
+        if(visualizer[i] == null) visualizer[i] = [null, null];
+        const [name, value] = visualizer[i];
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "visualizer-item";
+        if(i === 2)
+            itemDiv.classList.add("visualizer-highlighted");
+
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "visualizer-name";
+        nameDiv.appendChild(document.createTextNode(name ?? "-"));
+
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "visualizer-value";
+        valueDiv.appendChild(document.createTextNode(value ?? ""));
+
+        itemDiv.appendChild(nameDiv);
+        itemDiv.appendChild(valueDiv);
+
+        visualizerSection.appendChild(itemDiv);
+    }
+}
+
+function displayItems(itemsInfo) {
+    mainMenu.hidden = false;
+    noMenu.hidden = true;
+        
+    itemListSection.innerHTML = "";
+    fileInput.value = "";
+
+    const items = itemsInfo.items;
+    const selectedId = itemsInfo.selectedId;
+
+    for(const item of items) {
+        const { id, name, summary } = item;
+
+        const itemIdDiv = document.createElement("div");
+        itemIdDiv.className = "file-id";
+        itemIdDiv.id = "file-id-" + id;
+        itemIdDiv.appendChild(document.createTextNode(id));
+
+        const itemNameDiv = document.createElement("div");
+        itemNameDiv.className = "file-name";
+        itemNameDiv.id = "file-name-" + id;
+        itemNameDiv.appendChild(document.createTextNode(name));
+
+        const itemDescriptionDiv = document.createElement("div");
+        itemDescriptionDiv.className = "file-description";
+        itemDescriptionDiv.id = "file-description-" + id;
+        itemDescriptionDiv.appendChild(itemIdDiv);
+        itemDescriptionDiv.appendChild(itemNameDiv);
+        itemDescriptionDiv.addEventListener(
+            "click", async () => { await this.onToggle(id); }
+        )
+
+        const itemDeleteDiv = document.createElement("div");
+        itemDeleteDiv.className = "file-delete";
+        itemDeleteDiv.id = "file-delete-" + id;
+        itemDeleteDiv.appendChild(document.createTextNode("❌"));
+        itemDeleteDiv.addEventListener(
+            "click", async () => { await this.onRemove(id); }
+        )
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "file-item";
+        itemDiv.id = "file-item-" + id;
+        itemDiv.appendChild(itemDescriptionDiv);
+        itemDiv.appendChild(itemDeleteDiv);
+
+        if(id === selectedId) {
+            const itemSummaryDiv = document.createElement("div");
+            itemSummaryDiv.className = "file-summary";
+            itemSummaryDiv.id = "file-summary-" + id;
+            itemSummaryDiv.appendChild(document.createTextNode(summary));
+                
+            itemDiv.appendChild(itemSummaryDiv);
+        }
+
+        itemListSection.appendChild(itemDiv);
+    }
+}
+
+displayNoEngine();

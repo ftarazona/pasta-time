@@ -1,8 +1,4 @@
-console.debug("PastaTime -- aida.js: loading...");
-
 class AidaContentStore extends ContentStore {
-
-    static AllowedExtensions = [".aida"];
 
     getName(content) {
         if(content.objectType === "bill") {
@@ -31,6 +27,7 @@ class AidaContentStore extends ContentStore {
 class AidaEngine extends Engine {
 
     static ContentStoreClass = AidaContentStore;
+    static SiteName = "aida";
 
     static ObjectTypes = {
         "Factures": "bill",
@@ -41,7 +38,7 @@ class AidaEngine extends Engine {
     constructor() {
         super();
 
-        this.currentObjectType = null;
+        this.prevObjectType = null;
 
         this.observer = new MutationObserver(
             this.checkPage.bind(this)
@@ -60,72 +57,65 @@ class AidaEngine extends Engine {
     async init() {
         await super.init();
 
-        await this.loadPaths("aida", "general_paths.json")
+        await this.loadPaths("general_paths.json")
     }
 
-    get addButton() {
-        return this.searchElement("addButton");
-    }
+    get addButton()     { return this.fieldSearcher.search("addButton"); }
+    get saveButton()    { return this.fieldSearcher.search("saveButton"); }
+    get checkButton()   { return this.fieldSearcher.search("checkButton"); }
+    get closeButton()   { return this.fieldSearcher.search("closeButton"); }
 
-    get saveButton() {
-        return this.searchElement("saveButton");
-    }
+    add()   { Actions.click(this.addButton); }
+    check() { Actions.click(this.checkButton); }
+    save()  { this.check(); Actions.click(this.saveButton); }
+    close() { Actions.click(this.closeButton); }
 
-    get checkButton() {
-        return this.searchElement("checkButton");
-    }
-
-    get closeButton() {
-        return this.searchElement("closeButton");
-    }
-
-    add() {
-        Actions.click(this.addButton);
-    }
-
-    save() {
-        this.check();
-        Actions.click(this.saveButton);
-    }
-
-    check() {
-        Actions.click(this.checkButton);
-    }
-
-    close() {
-        Actions.click(this.closeButton);
-    }
-
-    async checkPage() {
+    get objectType() {
         const breadcrumbs = document.querySelectorAll(".s_breadcrumb_step_link");
         const text = breadcrumbs
             ?.item(breadcrumbs.length - 1)
             ?.ariaLabel;
+        return AidaEngine.ObjectTypes[text] || null;
+    }
 
-        const objectType = AidaEngine.ObjectTypes[text] || null;
-        if(objectType !== this.currentObjectType) {
-            this.currentObjectType = objectType;
-            await this.data.filterObjectType(objectType);
+    get structureType() {
+        const role = document.querySelector(".s_profile_bar_textlink_role");
+        if(role?.ariaLabel.includes("Epicerie"))    return "epicerie"
+        else if(role?.ariaLabel.includes("CD"))     return "aa"
+        else return null;
+    }
 
-            if(objectType === "bill") {
-                const role = document.querySelector(".s_profile_bar_textlink_role");
-                if(role?.ariaLabel.includes("Epicerie")) {
-                    await this.loadPlan("aida", "bill_es_plan.json");
-                    await this.loadPaths("aida", "bill_es_paths.json");
-                } else if(role?.ariaLabel.includes("CD"))
-                    await this.loadPlan("aida", "bill_aa_plan.json");
-                    await this.loadPaths("aida", "bill_aa_paths.json");
-            } else if(objectType === "reception") {
-                await this.loadPlan("aida", "reception_plan.json");
-                await this.loadPaths("aida", "reception_paths.json");
+    async checkPage() {
+        const objectType = this.objectType;
+        if(objectType === this.prevObjectType) return;
+
+        this.prevObjectType = objectType;
+
+        if(objectType === "bill") {
+            const structureType = this.structureType;
+
+            if(structureType === "epicerie") {
+
+                await this.loadPlan("bill_es_plan.json");
+                await this.loadPaths("bill_es_paths.json");
+
+            } else if(structureType === "aa") {
+
+                await this.loadPlan("bill_aa_plan.json");
+                await this.loadPaths("bill_aa_paths.json");
+
             }
+
+        } else if(objectType === "reception") {
+
+            await this.loadPlan("reception_plan.json");
+            await this.loadPaths("reception_paths.json");
+
         }
 
-        await this.updateInputVisualizer();
+        await this.data.filter(objectType);
     }
 }
 
 const engine = new AidaEngine;
 engine.init();
-
-console.debug("PastaTime -- aida.js: loaded");

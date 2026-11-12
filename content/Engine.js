@@ -1,225 +1,297 @@
-console.debug("PastaTime -- engine.js: loading...");
+/** Engine.js
+ * 
+ * Last modification on 10/11/2026 by F. TARAZONA
+ *  Refactoring message passing
+ * 
+ * Base class Engine abstracts several responsabilities of engines:
+ *  - message passing between engines and background/sidebar scripts
+ *  - calls to ContentStore methods
+ *  - triggering commands
+ *  - defining behaviour for base commands
+ *  - managing the cursor
+ */
+
 
 class Engine {
 
     static ContentStoreClass = null;
+    static SiteName = null;
 
     constructor() {
-        this.mapping = new Map();
-        this.data = new this.constructor.ContentStoreClass(this);
-        this.cursor = new Cursor();
+        this.mapping        = new Map();
+        this.data           = new this.constructor.ContentStoreClass(this);
 
-        this.fieldSearch = new FieldSearcher();
+        this.cursor         = new Cursor(this);
+        this.fieldSearcher  = new FieldSearcher();
 
-        this.on("Ctrl+Alt+N", "nextInput");
+        this.port = null;
+
+        //prevInput and nextInput allow the user to handle the cursor
+        //without entering data
         this.on("Ctrl+Alt+P", "prevInput");
+        this.on("Ctrl+Alt+N", "nextInput");
+
+        //enterInput effectively enters data, then increments the cursor
+        this.on("Ctrl+Alt+E", "enterInput");
     }
 
-    on(shortcut, method) {
-        if(this[method] == null) return;
 
+
+    /*******************/
+    /** SETUP METHODS **/
+    /*******************/
+
+    /** on(shortcut, method) -> ()
+     * 
+     * Sets a new command map entry.
+     * 
+     * Params:
+     *  - shortcut: hotkey that will trigger the call
+     *  - method: method name that will be called
+     * 
+     * If method is not defined by the engine class, the behavior is
+     * undefined, will most likely trigger errors in use.
+     */
+    on(shortcut, method) {
         this.mapping.set(shortcut, method);
     }
 
-
-
-    async notifyBackground() {
-        console.debug("Engine: notifying background");
-
-        await browser.runtime.sendMessage({
-            type: "REGISTER",
-            mapping: this.mapping
-        });
-    }
-
-    async notifySidebar() {
-        console.debug("Engine: notifying sidebar");
-
-        await browser.runtime.sendMessage({
-            type: "SET_FILES",
-            content: this.data.content
-        }).catch(_ => console.debug("Engine: Sidebar not available"));
-    }
-
-    async updateInputVisualizer() {
-        const prevNext = this.cursor.getPrevNext(2)
-            .map(step => step != null 
-                ? [step[0].name, step[1]]
-                : [null, null]
-            );
-
-        await browser.runtime.sendMessage({
-            type: "SET_VISUALIZER",
-            content: prevNext
-        }).catch(_ => console.debug("Engine: Sidebar not available"));
-    }
-
-    async init() {
-        await this.notifyBackground();
-        await this.notifySidebar();
-        //await this.updateInputVisualizer();
-
-        browser.runtime.onMessage.addListener(
-            this.onMessage.bind(this)
-        );
-    }
-
-
-
-    async onExecute({method}) {
-        console.debug("Engine: Execute", method);
-
-        if(typeof this[method] === 'function') {
-            try {
-                await this[method]();
-                return { success: true };
-            } 
-            catch(e) {
-                return { 
-                    success: false, 
-                    error: `No method ${method} in class ${this.constructor.name}`
-                };
-            }
-        }
-    }
-
-    onGetFiles() {
-        console.debug("Engine: Get files");
-
-        return {
-            success: true,
-            content: this.data.content
-        };
-    }
-
-    async onRemove({id}) {
-        console.debug("Engine: Remove file id");
-
-        this.data.remove(id);
-        await this.updateInputVisualizer();
-
-        return {
-            success: true,
-            content: this.data.content
-        };
-    }
-
-    async onToggle({id}) {
-        console.debug("Engine: Toggle file id");
-
-        this.data.toggle(id);
-        await this.updateInputVisualizer();
-
-        return {
-            success: true,
-            content: this.data.content
-        };
-    }
-
-    async onFilesUploaded({files}) {
-        console.debug("Engine: Files uploaded");
-
-        await this.data.load(files);
-        return {
-            success: true,
-            content: this.data.content
-        };
-    }
-
-    async onMessage(message) {
-        console.debug("Engine: message received:", message);
-
-        const type = message.type;
-
-        const methodMatches = {
-            "EXECUTE_COMMAND":  "Execute",
-            "GET_FILES":        "GetFiles",
-            "REMOVE_ID":        "Remove",
-            "TOGGLE_ID":        "Toggle",
-            "FILES_UPLOADED":   "FilesUploaded"
-        };
-
-        const methodName = methodMatches[type];
-        const response = methodName != null
-            ? (await this["on" + methodName](message))
-            : ({ success: false, error: `Engine: Unknown message type: ${type}` })
-        
-        return Promise.resolve(response);
-    }
-
-
-
-    searchElement(name) {
-        return this.fieldSearch.search(name);
-    }
-
-    async loadResource(site, file) {
-        const url = ["resources", "sites", site, file].join("/");
+    /** _loadResource(filename) -> content (async) 
+     * 
+     * Helper function for reading a resource file.
+    */
+    async _loadResource(filename) {
+        const site = this.constructor.SiteName;
+        const url = ["resources", "sites", site, filename].join("/");
         const fullURL = browser.runtime.getURL(url);
+
         const response = await fetch(fullURL);
-        if(!response.ok) console.error("Engine: Unable to load", fullURL);
+        if(!response.ok) 
+            alert("Engine: Unable to load resource", fullURL);
 
         const content = await response.json();
         return content;
     }
 
-    async loadPlan(site, file) {
-        const plan = await this.loadResource(site, file);
-        this.cursor.setPlan(plan);
+    /** loadPlan(filename) -> () (async)
+     * 
+     * Loads a plan file and feeds it to the plan to the cursor.
+    */
+    async loadPlan(filename) {
+        const plan = await this._loadResource(filename);
+        await this.cursor.setPlan(plan);
     }
 
-    async loadPaths(site, file) {
-        const paths = await this.loadResource(site, file);
-        this.fieldSearch.setPaths(paths);
+    /** loadPaths(filename) -> () (async)
+     * 
+     * Loads a paths file and feeds it to the field searcher.
+    */
+    async loadPaths(filename) {
+        const paths = await this._loadResource(filename);
+        this.fieldSearcher.setPaths(paths);
     }
 
-    setContent(content) {
-        this.cursor.setContent(content);
+
+    
+    /*****************************/
+    /** MESSAGE SENDING METHODS **/
+    /*****************************/
+
+    /** notifyInfoUpdated() -> () (async)
+     * 
+     * Notifies the sidebar to show the user updated information.
+     */
+    notifyInfoUpdated() {
+        this.port?.postMessage({
+            type: Messaging.ENGINE_INFO_UPDATED,
+            info: {
+                itemsInfo: this.data.info,
+                visualizer: this.cursor.getWindow(2)
+            }
+        });
     }
 
-    async nextInput() {
-        if(this.cursor.isReady) {
-            const [planIt, value] = this.cursor.current;
+    /** updateItem(item) -> () (async)
+     * 
+     * Updates item of the cursor and notifies the sidebar.
+    */
+    updateItem(item) {
+        this.cursor.setItem(item);
+    }
 
-            const el = Object.keys(planIt).includes("elID")
-                ? document.querySelector("#"+planIt.elID)
-                : this.fieldSearch.search(planIt.name);
-            if(el == null) {
-                console.error("Engine: No input element found for", planIt.name);
+
+    
+    /******************************/
+    /** MESSAGE HANDLING METHODS **/
+    /******************************/
+
+    /** onMessage(message) -> (Promise) (async)
+     * 
+     * Handles message from sidebar or background and calls the
+     * corresponding method in engine.
+     */
+    async onMessage(message) {
+        console.debug("Engine: Message received from background", message);
+        const type = message.type;
+
+        if(type === Messaging.EXECUTE_COMMAND) {
+
+            const { method } = message
+
+            if(!(typeof this[method] === 'function')) {
+                alert("Engine: No method", method, "found");
                 return;
             }
 
-            const methodName = planIt.method;
-            const method = FillMethod.new(methodName);
-            if(method == null) {
-                console.error("Engine: No fill method", methodName);
-                return;
+            try {
+                await this[method]();
+            } 
+            catch(err) {
+                alert("Engine: Error while executing method", method, ":", err);
             }
 
-            await Actions.focus(el);
-            await method.apply(value, el);
-            for(var i = 0; i < (planIt.tabs || 0); i++) {
-                await Actions.tab();
-            }
-            Actions.unfocus(el);
-            
-            this.cursor.increment();
+        } else if(type === Messaging.REQUEST_INFO_UPDATE) {
 
-            await sleep(planIt.delay ?? 0);
+            this.notifyInfoUpdated();
 
-            if(planIt.autonext) {
-                await sleep(100);
-                this.nextInput();
-            } else {
-                await this.updateInputVisualizer();
-            }
+        } else if(type === Messaging.ITEM_REMOVED) {
+
+            const { itemId } = message;
+            this.data.remove(itemId);
+
+        } else if(type === Messaging.ITEM_TOGGLED) {
+
+            const { itemId } = message;
+            this.data.toggle(itemId);
+
+        } else if(type === Messaging.FILES_UPLOADED) {
+
+            const { files } = message;
+            await this.data.loadFiles(files);
+
+        } else if(type === Messaging.REGISTRATION_SUCCESS) {
+
+            console.log("Registered successfully");
+
+        } else if(type === Messaging.REGISTRATION_FAILURE) {
+
+            console.error("Failed to register to background");
+
+        } else {
+
+            console.warn("Engine: Unknown message type", type);
+
         }
     }
 
-    async prevInput() {
+    setupPort() {
+
+        this.port = browser.runtime.connect({ name: "engine-port" });
+        this.port.onMessage.addListener(
+            this.onMessage.bind(this)
+        );
+
+        this.port.postMessage({
+            type: Messaging.ENGINE_REGISTRATION_REQUEST,
+            mapping: this.mapping
+        });
+    }
+
+    waitForBackground(message) {
+        const type = message.type;
+
+        if(type === Messaging.BACKGROUND_READY_FOR_ENGINE) {
+
+            this.setupPort();
+            this.notifyInfoUpdated();
+        }
+    }
+
+
+    /** init() -> ()
+     * 
+     * Handles setup of the engine. During the setup, background and
+     * sidebar scripts are notified and the messages are directed to the
+     * global message listener.
+     */
+    async init() {
+        console.debug("Engine: initialization");
+
+        await browser.runtime.sendMessage({
+            type: Messaging.IS_READY_FOR_ENGINE
+        }).then(_ => {
+            this.setupPort();
+            this.notifyInfoUpdated();
+        }).catch(_ => {
+            browser.runtime.onMessage.addListener(
+                this.waitForBackground.bind(this)
+            );
+        });
+
+        console.debug("Engine: initialized");
+    }
+
+
+    
+    /******************************/
+    /** MESSAGE HANDLING METHODS **/
+    /******************************/
+
+    /** enterInput() -> () (async)
+     * 
+     * Enters value currently pointed by the cursor.
+     * 
+     * Throws an error if the field input can not be found or if the 
+     * method is not registered as a FillMethod.
+     */
+    async enterInput() {
+        if(!this.cursor.isReady) return;
+            
+        const [field, value] = this.cursor.current;
+        const fieldName = field.name;
+        const methodName = field.method;
+
+        //Search for the input element and the method to apply
+        let el, method;
+        try {
+            el = this.fieldSearcher.search(fieldName);
+            method = FillMethod.new(methodName);
+        } catch(err) {
+            console.warn("No element or method found:", err);
+        }
+
+        await Actions.focus(el);
+        await method.apply(value, el);
+
+        //Enters the tabs required by the plan
+        for(var i = 0; i < (field.tabs || 0); i++) {
+            await Actions.tab();
+        }
+        await Actions.unfocus(el);
+
+        await sleep(field.delay ?? 0);
+
+        //The method can be called recursively if required in the plan
+        this.cursor.increment(!field.autonext);
+        if(field.autonext) {
+            await sleep(100);
+            await this.enterInput();
+        }
+    }
+
+    /** prevInput() -> ()
+     * 
+     * Decrements the cursor without entering the value.
+     */
+    prevInput() {
         this.cursor.decrement();
-        await this.updateInputVisualizer();
+    }
+
+    /** nextInput() -> ()
+     * 
+     * Increments the cursor without entering the value.
+     */
+    nextInput() {
+        this.cursor.increment();
     }
 }
-
-console.debug("PastaTime -- engine.js: loaded")

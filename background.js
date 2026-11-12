@@ -1,166 +1,265 @@
-console.log("background.js: loading...");
+class BackgroundManager {
 
-const MAX_N_ACTIONS = 5;
-
-async function showCommands() {
-    const commands = await browser.commands.getAll();
-    console.log(`Background: Existing commands:`, commands);
-}
-
-async function resetCommands() {
-    console.log("Background: Reset commands");
-    
-    const commands = await browser.commands.getAll();
-    await Promise.all(
-        commands.map(
-            cmd => browser.commands.reset(cmd.name)
-        )
-    );
-}
-
-
-class BackgroundCommandContext {
-
-    constructor(tabId, mapping) {
-        this.tabId = tabId;
-
-        if(mapping.length > MAX_N_ACTIONS) {
-            console.warn(`Background: Exceeded maximum number of actions (${MAX_N_ACTIONS})`);
-            mapping = mapping.slice(0, MAX_N_ACTIONS);
-        }
-        this.cmdMapping = new Map(
-            mapping.entries().map(
-                ([shortcut, method], idx) =>
-                [
-                    "action-" + (idx + 1),
-                    { shortcut, method }
-                ]
-            )
-        );
-    }
-
-    async enter() {
-        console.log("Background: Entering context...");
-
-        await resetCommands();
-        await Promise.all(
-            this.cmdMapping.entries().map(
-                ([name, { shortcut }]) => 
-                    browser.commands.update({ name, shortcut })
-            )
-        );
-
-        await showCommands();
-    }
-
-    async exit() {
-        console.log("Background: Exiting context");
-        
-        await resetCommands();
-    }
-
-    async execute(cmdName) {
-        const cmd = this.cmdMapping.get(cmdName);
-        const method = cmd.method;
-
-        await browser.tabs.sendMessage(
-            this.tabId,
-            {
-                type: "EXECUTE_COMMAND",
-                method
-            }
-        );
-    }
-}
-
-
-class BackgroundContextManager {
+    static MAX_N_ACTIONS = 7;
 
     constructor() {
-        this.ctxMap = new Map();
-        this.curCtx = null;
+
+        this.curTabId = null;
+
+        this.sidebarPort = null;
+        this.enginePorts = new Map();
+
+        this.commandMappings = new Map();
     }
 
+    async onMessage(message) {
+        const type = message.type;
 
-
-    switchContext(tabId) {
-        console.log("Background: Switch context to", tabId);
-
-        this.curCtx?.exit();
-
-        this.curCtx = this.ctxMap.get(tabId);
-        this.curCtx?.enter();
+        if(type === Messaging.IS_READY_FOR_ENGINE) {
+            return true;
+        }
     }
 
-    onSwitchContext(tab) {        
-        this.switchContext(tab.tabId);
-    }
+    async init() {
+        const [tab] = await browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+        this.curTabId = tab.id;
 
-    onDeleteContext(tab) {
-        console.log("Background: Delete context for", tab);
-
-        const ctx = this.ctxMap.get(tab.tabId);
-        if(ctx === this.curCtx)
-            ctx?.exit();
-
-        this.ctxMap.delete(tab.tabId);
-    }
-
-    async onCommand(cmdName) {
-        console.log("Background: Sending command", cmdName);
-
-        this.curCtx?.execute(cmdName);
-    }
-
-    init() {
         browser.tabs.onActivated.addListener(
-            this.onSwitchContext.bind(this)
-        );
-        browser.tabs.onRemoved.addListener(
-            this.onDeleteContext.bind(this)
+            tab => this.onTabActivated(tab)
         );
 
         browser.runtime.onMessage.addListener(
             this.onMessage.bind(this)
         );
 
+        browser.runtime.onConnect.addListener(
+            p => this.portConnected(p)
+        );
+
         browser.commands.onCommand.addListener(
-            this.onCommand.bind(this)
+            name => this.onCommand(name)
+        );
+
+        const tabs = await browser.tabs.query({});
+        await Promise.all(
+            tabs.map(
+                tab =>
+                    browser.tabs.sendMessage(tab.id, {
+                        type: Messaging.BACKGROUND_READY_FOR_ENGINE
+                    })
+            )
+        )
+    }
+
+    get currentMapping() {
+        return this.commandMappings.get(this.curTabId);
+    }
+
+    get currentEnginePort() {
+        return this.enginePorts.get(this.curTabId);
+    }
+
+    get hasSidebar() {
+        return this.sidebarPort != null;
+    }
+
+    get hasEngine() {
+        return this.enginePorts.has(this.curTabId);
+    }
+
+
+    async showCommands() {
+        const commands = await browser.commands.getAll();
+        console.debug(`Background: Existing commands:`, commands);
+    }
+
+    async resetCommands() {
+        console.debug("Background: Resetting commands");
+        const commands = await browser.commands.getAll();
+        await Promise.all(
+            commands.map(
+                cmd => browser.commands.reset(cmd.name)
+            )
+        );
+    }
+
+    async setCommands() {
+        await this.resetCommands();
+
+        const mapping = this.currentMapping;
+        if(mapping == null) return;
+
+        console.debug("Background: Setting commands", mapping);
+        await Promise.all(
+            mapping.entries().map(
+                ([ name, { shortcut }]) =>
+                    browser.commands.update({ name, shortcut })
+            )
         );
     }
 
 
+    registerEngine(tabId, mapping) {
+        if(mapping.length > BackgroundManager.MAX_N_ACTIONS) {
+            console.error("BACKGROUND")
+        }
 
-    onRegisterContext(tab, {mapping}) {
-        console.log("Background: Register context", tab, mapping);
+        this.commandMappings.set(
+            tabId,
+            new Map(
+                mapping.entries().map(
+                    ([ shortcut, method ], idx) =>
+                        [
+                            "action-" + (idx + 1),
+                            { shortcut, method }
+                        ]
+                )
+            )
+        )
 
-        const ctx = new BackgroundCommandContext(tab.id, mapping);
-        this.ctxMap.set(tab.id, ctx);
-
-        if(tab.active)
-            this.switchContext(tab.id);
+        return true;
     }
 
-    async onMessage(message, sender) {
-        console.log("Background: message received:", message, sender);
+    deleteEngine(tabId) {
+        this.commandMappings.delete(tabId);
+    }
 
+    onCommand(name) {
+        const method = this.currentMapping?.get(name).method;
+        if(method == null) return;
+
+        this.currentEnginePort?.postMessage({
+            type: Messaging.EXECUTE_COMMAND,
+            method
+        });
+    }
+
+
+    async onEngineMessage(message, port) {
+        console.debug("Background: Message received from engine", message);
         const type = message.type;
-        const tab = sender.tab;
 
-        const methodMatches = {
-            "REGISTER": "RegisterContext",
-        };
+        if(type === Messaging.ENGINE_INFO_UPDATED) {
 
-        const methodName = methodMatches[type];
-        const response = methodName != null
-            ? (await this["on" + methodName](tab, message))
-            : ({ success: false, error: `Background: Unknown message type: ${type}` })
-        
-        return Promise.resolve(response);
+            this.sidebarPort?.postMessage(message);
+
+        } else if(type === Messaging.ENGINE_REGISTRATION_REQUEST) {
+
+            const tabId = port.sender.tab.id;
+            const { mapping } = message;
+            const success = this.registerEngine(tabId, mapping);
+            if(success) {
+                this.enginePorts.get(tabId)?.postMessage({
+                    type: Messaging.REGISTRATION_SUCCESS
+                });
+            } else {
+                this.enginePorts.get(tabId)?.postMessage({
+                    type: Messaging.REGISTRATION_FAILURE
+                });
+            }
+
+            if(port.sender.tab.active) {
+                this.curTabId = tabId;
+                await this.setCommands();
+            }
+
+        }
+    }
+
+    onSidebarMessage(message) {
+        console.debug("Background: Message received from sidebar", message);
+        const type = message.type;
+
+        if(
+            type === Messaging.ITEM_REMOVED ||
+            type === Messaging.ITEM_TOGGLED ||
+            type === Messaging.FILES_UPLOADED
+        ) {
+            this.currentEnginePort?.postMessage(message);
+        }
+    }
+
+    async onEngineDisconnected(p) {
+        console.log("Background: Engine port disconnection", p);
+        if(p.error) {
+            console.error("Engine port disconnected on error", p.error.message);
+        }
+
+        const tabId = p.sender.tab.id;
+        if(tabId === this.curTabId) 
+            await this.resetCommands();
+
+        this.enginePorts.delete(tabId);
+    }
+
+    onSidebarDisconnected(p) {
+        console.log("Background: Sidebar port disconnection", p);
+        if(p.error) {
+            console.error("Sidebar port disconnected on error", p.error.message);
+        }
+
+        this.sidebarPort = null;
+    }
+
+    portConnected(p) {
+        console.debug("Background: port connection", p);
+        const name = p.name;
+
+        if(name === "engine-port") {
+
+            p.onMessage.addListener(
+                this.onEngineMessage.bind(this)
+            );
+            p.onDisconnect.addListener(
+                this.onEngineDisconnected.bind(this)
+            );
+
+            const tabId = p.sender.tab.id;
+            this.enginePorts.set(tabId, p);
+
+        } else if(name === "sidebar-port") {
+
+            p.onMessage.addListener(
+                this.onSidebarMessage.bind(this)
+            );
+            p.onDisconnect.addListener(
+                this.onSidebarDisconnected.bind(this)
+            );
+
+            this.sidebarPort = p;
+
+            this.currentEnginePort?.postMessage({
+                type: Messaging.REQUEST_INFO_UPDATE
+            })
+        }
+    }
+
+
+    async onTabActivated(tab) {
+        if(this.curTabId !== tab.tabId) {
+            await this.setCommands();
+        }
+
+        this.curTabId = tab.tabId;
+
+        if(!this.hasEngine) {
+
+            this.sidebarPort?.postMessage({
+                type: Messaging.SIDEBAR_NO_ENGINE_AVAILABLE
+            });
+
+        } else {
+
+            this.currentEnginePort?.postMessage({
+                type: Messaging.REQUEST_INFO_UPDATE
+            });
+
+        }
     }
 }
 
-const contexts = new BackgroundContextManager;
+const contexts = new BackgroundManager();
 contexts.init();
-
-console.log("background.js: loaded");

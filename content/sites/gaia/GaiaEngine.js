@@ -1,24 +1,15 @@
-console.log("PastaTime -- gaia.js: loading...");
-
-
 class GaiaContentStore extends ContentStore {
 
-    static AllowedExtensions = [".gaia"];
-
-    getName(content) {
-        if(content.objectType === "volunteer") {
-            return content.firstName + " " + content.lastName;
-        } else {
-            return "Inconnu";
-        }
+    getName(item) {
+        return item.objectType === "volunteer"
+            ? item.firstName + " " + item.lastName
+            : "Inconnu";
     }
 
-    getSummary(content) {
-        if(content.objectType === "volunteer") {
-            return "";
-        } else {
-            return "Illisible";
-        }
+    getSummary(item) {
+        return item.objectType === "volunteer"
+            ? ""
+            : "Illisible";
     }
 
 }
@@ -26,6 +17,7 @@ class GaiaContentStore extends ContentStore {
 class GaiaEngine extends Engine {
 
     static ContentStoreClass = GaiaContentStore;
+    static SiteName = "gaia";
 
     constructor() {
         super();
@@ -33,11 +25,11 @@ class GaiaEngine extends Engine {
         this.on("Ctrl+Alt+C", "continue")
     }
 
-    async init() {
-        await super.init();
+    init() {
+        super.init();
 
-        await this.loadPlan("gaia", "volunteer_plan.json");
-        await this.loadPaths("gaia", "volunteer_paths.json");
+        this.loadPlan("volunteer_plan.json");
+        this.loadPaths("volunteer_paths.json");
     }
 
     get continueButton() {
@@ -51,5 +43,3 @@ class GaiaEngine extends Engine {
 
 const engine = new GaiaEngine;
 engine.init();
-
-console.log("PastaTime -- gaia.js: loaded");
