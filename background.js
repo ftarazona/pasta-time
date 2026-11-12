@@ -1,7 +1,22 @@
+/** background.js 
+ * 
+ * Last modification on 12/11/2026 by F. TARAZONA
+ *  Refactored for port based approach
+ * 
+ * Class BackgroundManager handles communication between the engines and
+ * the sidebar and the commands.
+ */
+
+
 class BackgroundManager {
 
-    static MAX_N_ACTIONS = 7;
+    //Maximum number of actions is synchronized on manifest information
+    static MAX_N_ACTIONS = 
+        Object.keys(
+            browser.runtime.getManifest().commands
+        ).length;
 
+    
     constructor() {
 
         this.curTabId = null;
@@ -12,6 +27,10 @@ class BackgroundManager {
         this.commandMappings = new Map();
     }
 
+
+    /** The only message passing outside of port communication is used
+     * to notify engines they may open a new port when background is
+     * ready to connect. */
     async onMessage(message) {
         const type = message.type;
 
@@ -20,6 +39,8 @@ class BackgroundManager {
         }
     }
 
+    /** Initializes event handlers, current tab, and notifies every tab
+     * that background is now ready to register engines. */
     async init() {
         const [tab] = await browser.tabs.query({
             active: true,
@@ -43,6 +64,8 @@ class BackgroundManager {
             name => this.onCommand(name)
         );
 
+        //Notifying existing tabs is necessary because content scripts
+        //may be loaded before the background is initialized.
         const tabs = await browser.tabs.query({});
         await Promise.all(
             tabs.map(
@@ -53,6 +76,12 @@ class BackgroundManager {
             )
         )
     }
+
+
+
+    /*************/
+    /** GETTERS **/
+    /*************/
 
     get currentMapping() {
         return this.commandMappings.get(this.curTabId);
@@ -70,6 +99,11 @@ class BackgroundManager {
         return this.enginePorts.has(this.curTabId);
     }
 
+
+
+    /***************************/
+    /** BROWSER COMMAND SETUP **/
+    /***************************/
 
     async showCommands() {
         const commands = await browser.commands.getAll();
@@ -101,10 +135,27 @@ class BackgroundManager {
         );
     }
 
+    onCommand(name) {
+        const method = this.currentMapping?.get(name).method;
+        if(method == null) return;
 
+        this.currentEnginePort?.postMessage({
+            type: Messaging.EXECUTE_COMMAND,
+            method
+        });
+    }
+
+
+
+    /***********************/
+    /** ENGINES LIFECYCLE **/
+    /***********************/
+
+    /** Sets up a new mapping for the tab of the engine.
+     * THIS DOES NOT EFFECTIVELY SET BROWSER COMMANDS */
     registerEngine(tabId, mapping) {
         if(mapping.length > BackgroundManager.MAX_N_ACTIONS) {
-            console.error("BACKGROUND")
+            return false;
         }
 
         this.commandMappings.set(
@@ -127,16 +178,6 @@ class BackgroundManager {
         this.commandMappings.delete(tabId);
     }
 
-    onCommand(name) {
-        const method = this.currentMapping?.get(name).method;
-        if(method == null) return;
-
-        this.currentEnginePort?.postMessage({
-            type: Messaging.EXECUTE_COMMAND,
-            method
-        });
-    }
-
 
     async onEngineMessage(message, port) {
         console.debug("Background: Message received from engine", message);
@@ -144,12 +185,14 @@ class BackgroundManager {
 
         if(type === Messaging.ENGINE_INFO_UPDATED) {
 
+            //Communication targeting sidebar, transfer directly
             this.sidebarPort?.postMessage(message);
 
         } else if(type === Messaging.ENGINE_REGISTRATION_REQUEST) {
 
             const tabId = port.sender.tab.id;
             const { mapping } = message;
+
             const success = this.registerEngine(tabId, mapping);
             if(success) {
                 this.enginePorts.get(tabId)?.postMessage({
@@ -161,24 +204,12 @@ class BackgroundManager {
                 });
             }
 
+            //Tabs may be existing when launching the extension.
             if(port.sender.tab.active) {
                 this.curTabId = tabId;
                 await this.setCommands();
             }
 
-        }
-    }
-
-    onSidebarMessage(message) {
-        console.debug("Background: Message received from sidebar", message);
-        const type = message.type;
-
-        if(
-            type === Messaging.ITEM_REMOVED ||
-            type === Messaging.ITEM_TOGGLED ||
-            type === Messaging.FILES_UPLOADED
-        ) {
-            this.currentEnginePort?.postMessage(message);
         }
     }
 
@@ -195,6 +226,25 @@ class BackgroundManager {
         this.enginePorts.delete(tabId);
     }
 
+
+
+    /***********************/
+    /** SIDEBAR LIFECYCLE **/
+    /***********************/
+
+    onSidebarMessage(message) {
+        console.debug("Background: Message received from sidebar", message);
+        const type = message.type;
+
+        if(
+            type === Messaging.ITEM_REMOVED ||
+            type === Messaging.ITEM_TOGGLED ||
+            type === Messaging.FILES_UPLOADED
+        ) {
+            this.currentEnginePort?.postMessage(message);
+        }
+    }
+
     onSidebarDisconnected(p) {
         console.log("Background: Sidebar port disconnection", p);
         if(p.error) {
@@ -203,6 +253,12 @@ class BackgroundManager {
 
         this.sidebarPort = null;
     }
+
+
+
+    /*********************/
+    /** HANDLING EVENTS **/
+    /*********************/
 
     portConnected(p) {
         console.debug("Background: port connection", p);
@@ -237,7 +293,8 @@ class BackgroundManager {
         }
     }
 
-
+    /** Switches mapping and updates the requests the engine to provide
+     * updated info to sidebar. */
     async onTabActivated(tab) {
         if(this.curTabId !== tab.tabId) {
             await this.setCommands();

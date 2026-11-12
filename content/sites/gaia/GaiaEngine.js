@@ -1,3 +1,10 @@
+/** GaiaEngine.js
+ * 
+ * Last modification on 12/11/2026 by F. TARAZONA
+ *  Commenting
+ */
+
+
 class GaiaContentStore extends ContentStore {
 
     getName(item) {
@@ -11,7 +18,6 @@ class GaiaContentStore extends ContentStore {
             ? ""
             : "Illisible";
     }
-
 }
 
 class GaiaEngine extends Engine {
@@ -32,8 +38,8 @@ class GaiaEngine extends Engine {
         this.loadPaths("volunteer_paths.json");
     }
 
-    get continueButton() {
-        return this.searchElement("continueButton");
+    get continueButton() { 
+        return this.fieldSearcher.search("continueButton");
     }
 
     async continue() {

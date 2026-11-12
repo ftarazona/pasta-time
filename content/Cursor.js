@@ -17,10 +17,8 @@ function inBounds(i, bounds) {
 
 class Cursor {
 
-    /**
-     * An engine must be given to the cursor so that the store
-     * can automatically trigger an update of sidebar info if needed. 
-     */
+    /** An engine must be given to the cursor so that the store
+     * can automatically trigger an update of sidebar info if needed. */
     constructor(engine) {
         this.engine = engine;
 
@@ -32,10 +30,7 @@ class Cursor {
     }
 
 
-    /** _isSingleLevel(field) -> bool (static)
-     * 
-     * Indicates whether the given field has subfields.
-     */
+    /** Indicates whether the given field has subfields. */
     static _isPlan(field) {
         return Object.keys(field).includes("list")
     }
@@ -46,10 +41,7 @@ class Cursor {
     /** RECURSIVE COMPUTING OF CURSOR STEPS **/
     /*****************************************/
 
-    /** _begin_rec(plan, item) -> cursor (static, recursive)
-     * 
-     * Given a plan and an item, returns the first cursor possible.
-     */
+    /** Given a plan and an item, returns the first cursor possible. */
     static _begin_rec(plan, item) {
         if(!Cursor._isPlan(plan[0])) {
             return [[0, null]];
@@ -61,10 +53,7 @@ class Cursor {
         }
     }
 
-    /** _end_rec(plan, item) -> cursor (static, recursive)
-     * 
-     * Given a plan and an item, returns the last cursor possible.
-     */
+    /** Given a plan and an item, returns the last cursor possible. */
     static _end_rec(plan, item) {
         if(Cursor._isPlan(plan.at(-1))) {
 
@@ -83,11 +72,8 @@ class Cursor {
         }
     }
 
-    /** _at_rec(cursor, plan, item) -> (field, value) (static, recursive) 
-     * 
-     * Given a cursor, plan and item, returns the field and value pointed
-     * by the cursor.
-    */
+    /** Given a cursor, plan and item, returns the field and value pointed
+     * by the cursor. */
     static _at_rec(cursor, plan, item) {
         const [iField, iItem] = cursor.shift();
         const fieldName = plan[iField].name;
@@ -97,22 +83,15 @@ class Cursor {
             : [plan[iField], item[fieldName]];
     }
 
-    /** _step_noCursor(plan, item, dir) -> cursor (static, recursive)
-     * 
-     * Returns the first cursor step, depending on the given direction.
-     */
+    /** Returns the first cursor step, depending on the given direction. */
     static _step_noCursor(plan, item, dir) {
         return dir === "incr"
             ? Cursor._begin_rec(plan, item)
             : Cursor._end_rec(plan, item);
     }
 
-    /** _step_singleLevelCursor(plan, iField, item, dir) -> cursor
-     * (static, recursive)
-     * 
-     * Returns the next cursor for a single level cursor depending on the
-     * given direction.
-     */
+    /** Returns the next cursor for a single level cursor depending on 
+     * the given direction. */
     static _step_singleLevelCursor(plan, iField, item, dir) {
 
         //We are looking for the next field in the plan. This next field
@@ -153,12 +132,8 @@ class Cursor {
         }
     }
 
-    /** _step_multipleLevelCursor(cursor, plan, item, dir) -> cursor
-     * (static, recursive)
-     * 
-     * Returns the next cursor for a cursor that still has sub levels to
-     * explore.
-     */
+    /** Returns the next cursor for a cursor that still has sub levels to
+     * explore. */
     static _step_multipleLevelCursor(cursor, plan, item, dir) {
         
         //There is a subcursor that may be incremented. We first try to
@@ -239,16 +214,12 @@ class Cursor {
         }
     }
 
-    /** _step_rec(cursor, plan, item, dir) -> cursor
-     * (static, recursive)
-     * 
-     * Returns the next cursor, incremented if dir is "incr", decremented
+    /** Returns the next cursor, incremented if dir is "incr", decremented
      * if dir is "decr".
      * 
      * The caller is responsible for consistency of plan and item. If the
      * plan is null or the item contains empty list, the behavior is
-     * undefined.
-     */
+     * undefined. */
     static _step_rec(cursor, plan, item, dir) {
 
         if(cursor.length === 0) {
@@ -276,35 +247,26 @@ class Cursor {
     /** HELPER INSTANCE METHODS **/
     /*****************************/
 
-    /** _at(cursor) -> (field, value)
+    /** Wrapper for static _at_rec, given any cursor valid for the 
+     * current item.
      * 
-     * Wrapper for static _at_rec, given any cursor valid for the current
-     * item.
-     * 
-     * If the cursor is empty, null is returned.
-     */
+     * If the cursor is empty, null is returned. */
     _at(cursor) {
         return cursor.length > 0
             ? Cursor._at_rec([...cursor], this.plan, this.item)
             : null;
     }
 
-    /** _nextFrom(cursor) -> cursor
-     * 
-     * Wrapper for static _step_rec, with dir = "incr", returns the
-     * incremented cursor given the current item.
-     */
+    /** Wrapper for static _step_rec, with dir = "incr", returns the
+     * incremented cursor given the current item. */
     _nextFrom(cursor) {
         return Cursor._step_rec(
             [...cursor], this.plan, this.item, "incr"
         );
     }
 
-    /** _nextFrom(cursor) -> cursor
-     * 
-     * Wrapper for static _step_rec, with dir = "decr", returns the
-     * decremented cursor given the current item.
-     */
+    /** Wrapper for static _step_rec, with dir = "decr", returns the
+     * decremented cursor given the current item. */
     _prevFrom(cursor) {
         return Cursor._step_rec(
             [...cursor], this.plan, this.item, "decr"
@@ -317,20 +279,14 @@ class Cursor {
     /** INSTANCE METHODS EXPOSED TO ENGINE **/
     /****************************************/
 
-    /** isReady() -> bool (getter)
-     * 
-     * Indicates whether the cursor is initialized and ready to point
-     * the cursor.
-     */
+    /** Indicates whether the cursor is initialized and ready to point
+     * the cursor. */
     get isReady() {
         return this.plan != null && this.item != null;
     }
 
-    /** begin(bool=true) -> ()
-     * 
-     * Sets the cursor to its begin position and notifies the engine
-     * of the update if asked (asked by default)
-     */
+    /** Sets the cursor to its begin position and notifies the engine
+     * of the update if asked (asked by default) */
     begin(notify=true) {
         if(!this.isReady) {
             this.cursor = [];
@@ -343,11 +299,8 @@ class Cursor {
             this.engine.notifyInfoUpdated();
     }
 
-    /** end(bool=true) -> ()
-     * 
-     * Sets the cursor to its end position and notifies the engine
-     * of the update if asked (asked by default)
-     */
+    /** Sets the cursor to its end position and notifies the engine
+     * of the update if asked (asked by default) */
     end(notify=true) {
         if(!this.isReady) {
             this.cursor = [];
@@ -360,35 +313,26 @@ class Cursor {
             this.engine.notifyInfoUpdated();
     }
 
-    /** setPlan(plan) -> ()
-     * 
-     * Setup plan and sets the cursor to its begin position, notifying
+    /** Setup plan and sets the cursor to its begin position, notifying
      * the engine of the update.
      * 
-     * If the plan is invalid, further behavior is undefined.
-     */
+     * If the plan is invalid, further behavior is undefined. */
     setPlan(plan) {
         this.plan = plan;
         this.begin();
     }
 
-    /** setItem(item) -> ()
-     * 
-     * Setup item and sets the cursor to its begin position, notifying
+    /** Setup item and sets the cursor to its begin position, notifying
      * the engine of the update.
      * 
-     * If the item is invalid, further behavior is undefined.
-     */
+     * If the item is invalid, further behavior is undefined. */
     setItem(item) {
         this.item = item;
         this.begin();
     }
 
-    /** increment(bool=true) -> ()
-     * 
-     * Increments the position of cursor if possible and notifies the
-     * engine of the update if asked.
-     */
+    /** Increments the position of cursor if possible and notifies the
+     * engine of the update if asked. */
     increment(notify=true) {
         if(this.hasHit === "end") return null;
 
@@ -405,11 +349,8 @@ class Cursor {
             this.engine.notifyInfoUpdated();
     }
 
-    /** decrement(bool=true) -> ()
-     * 
-     * Decrements the position of cursor if possible and notifies the
-     * engine of the update if asked.
-     */
+    /** Decrements the position of cursor if possible and notifies the
+     * engine of the update if asked. */
     decrement(notify=true) {
         if(this.hasHit === "start") return null;
 
@@ -426,22 +367,16 @@ class Cursor {
             this.engine.notifyInfoUpdated();
     }
 
-    /** current() -> cursor (getter) 
-     * 
-     * Wrapper for static method _at.
-     */
+    /** Wrapper for static method _at. */
     get current() {
         return this._at(this.cursor);
     }
 
-    /** getWindow(integer=2) -> [(fieldName, value)]
-     * 
-     * Returns an array of field name and corresponding item value around
-     * the current cursor.
+    /** Returns an array of field name and corresponding item value 
+     * around the current cursor.
      * 
      * It the window goes beyond the start or end of the item, concerned
-     * array positions are set to [null, null].
-     */
+     * array positions are set to [null, null]. */
     getWindow(n=2) {
         const response = Array(n*2 + 1);
         if(!this.isReady) {

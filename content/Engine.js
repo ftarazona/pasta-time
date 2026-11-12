@@ -41,25 +41,19 @@ class Engine {
     /** SETUP METHODS **/
     /*******************/
 
-    /** on(shortcut, method) -> ()
-     * 
-     * Sets a new command map entry.
+    /** Sets a new command map entry.
      * 
      * Params:
      *  - shortcut: hotkey that will trigger the call
      *  - method: method name that will be called
      * 
      * If method is not defined by the engine class, the behavior is
-     * undefined, will most likely trigger errors in use.
-     */
+     * undefined, will most likely trigger errors in use. */
     on(shortcut, method) {
         this.mapping.set(shortcut, method);
     }
 
-    /** _loadResource(filename) -> content (async) 
-     * 
-     * Helper function for reading a resource file.
-    */
+    /** Helper function for reading a resource file. */
     async _loadResource(filename) {
         const site = this.constructor.SiteName;
         const url = ["resources", "sites", site, filename].join("/");
@@ -73,19 +67,13 @@ class Engine {
         return content;
     }
 
-    /** loadPlan(filename) -> () (async)
-     * 
-     * Loads a plan file and feeds it to the plan to the cursor.
-    */
+    /** Loads a plan file and feeds it to the plan to the cursor. */
     async loadPlan(filename) {
         const plan = await this._loadResource(filename);
         await this.cursor.setPlan(plan);
     }
 
-    /** loadPaths(filename) -> () (async)
-     * 
-     * Loads a paths file and feeds it to the field searcher.
-    */
+    /** Loads a paths file and feeds it to the field searcher. */
     async loadPaths(filename) {
         const paths = await this._loadResource(filename);
         this.fieldSearcher.setPaths(paths);
@@ -97,10 +85,7 @@ class Engine {
     /** MESSAGE SENDING METHODS **/
     /*****************************/
 
-    /** notifyInfoUpdated() -> () (async)
-     * 
-     * Notifies the sidebar to show the user updated information.
-     */
+    /** Notifies the sidebar to show the user updated information. */
     notifyInfoUpdated() {
         this.port?.postMessage({
             type: Messaging.ENGINE_INFO_UPDATED,
@@ -111,10 +96,7 @@ class Engine {
         });
     }
 
-    /** updateItem(item) -> () (async)
-     * 
-     * Updates item of the cursor and notifies the sidebar.
-    */
+    /** Updates item of the cursor and notifies the sidebar. */
     updateItem(item) {
         this.cursor.setItem(item);
     }
@@ -125,11 +107,8 @@ class Engine {
     /** MESSAGE HANDLING METHODS **/
     /******************************/
 
-    /** onMessage(message) -> (Promise) (async)
-     * 
-     * Handles message from sidebar or background and calls the
-     * corresponding method in engine.
-     */
+    /** Handles message from sidebar or background and calls the
+     * corresponding method in engine. */
     async onMessage(message) {
         console.debug("Engine: Message received from background", message);
         const type = message.type;
@@ -184,6 +163,7 @@ class Engine {
         }
     }
 
+    /** Setup the port with background when it is ready. */
     setupPort() {
 
         this.port = browser.runtime.connect({ name: "engine-port" });
@@ -197,6 +177,7 @@ class Engine {
         });
     }
 
+    /** Waits for background to indicate it is ready. */
     waitForBackground(message) {
         const type = message.type;
 
@@ -208,12 +189,9 @@ class Engine {
     }
 
 
-    /** init() -> ()
-     * 
-     * Handles setup of the engine. During the setup, background and
+    /** Handles setup of the engine. During the setup, background and
      * sidebar scripts are notified and the messages are directed to the
-     * global message listener.
-     */
+     * global message listener. */
     async init() {
         console.debug("Engine: initialization");
 
@@ -237,13 +215,10 @@ class Engine {
     /** MESSAGE HANDLING METHODS **/
     /******************************/
 
-    /** enterInput() -> () (async)
-     * 
-     * Enters value currently pointed by the cursor.
+    /** Enters value currently pointed by the cursor.
      * 
      * Throws an error if the field input can not be found or if the 
-     * method is not registered as a FillMethod.
-     */
+     * method is not registered as a FillMethod. */
     async enterInput() {
         if(!this.cursor.isReady) return;
             
@@ -279,18 +254,12 @@ class Engine {
         }
     }
 
-    /** prevInput() -> ()
-     * 
-     * Decrements the cursor without entering the value.
-     */
+    /** Decrements the cursor without entering the value. */
     prevInput() {
         this.cursor.decrement();
     }
 
-    /** nextInput() -> ()
-     * 
-     * Increments the cursor without entering the value.
-     */
+    /** Increments the cursor without entering the value. */
     nextInput() {
         this.cursor.increment();
     }

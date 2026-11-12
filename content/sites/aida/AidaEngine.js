@@ -1,3 +1,10 @@
+/** AidaEngine.js
+ * 
+ * Last modification on 12/11/2026 by F. TARAZONA
+ *  Commenting
+ */
+
+
 class AidaContentStore extends ContentStore {
 
     getName(content) {
@@ -35,6 +42,9 @@ class AidaEngine extends Engine {
         "Livraisons": "shipping",
     };
 
+
+    /** Some observers are needed to detect mode changes and set new
+     * paths and plans and new filter for data store. */
     constructor() {
         super();
 
@@ -60,6 +70,12 @@ class AidaEngine extends Engine {
         await this.loadPaths("general_paths.json")
     }
 
+
+
+    /********************/
+    /** BUTTON ACTIONS **/
+    /********************/
+
     get addButton()     { return this.fieldSearcher.search("addButton"); }
     get saveButton()    { return this.fieldSearcher.search("saveButton"); }
     get checkButton()   { return this.fieldSearcher.search("checkButton"); }
@@ -69,6 +85,12 @@ class AidaEngine extends Engine {
     check() { Actions.click(this.checkButton); }
     save()  { this.check(); Actions.click(this.saveButton); }
     close() { Actions.click(this.closeButton); }
+
+
+
+    /**************************/
+    /** MODE CHANGE HANDLING **/
+    /**************************/
 
     get objectType() {
         const breadcrumbs = document.querySelectorAll(".s_breadcrumb_step_link");

@@ -1,3 +1,12 @@
+/** panel.js
+ * 
+ * Last modification on 12/11/2026 by F. TARAZONA
+ *  Refactored with port based approach
+ * 
+ * Script handling sidebar when opened.
+ */
+
+//Variables storing the HTML section containers.
 const mainMenu = document.querySelector("#main-menu");
 const noMenu = document.querySelector("#no-menu");
 
@@ -6,10 +15,11 @@ const visualizerSection = document.querySelector("#visualizer-section");
 const itemListSection = document.querySelector("#file-list-section");
 
 
-/** onBackgroundMessage(message) -> ()
- * 
- * Handles messages received from background.
- */
+/********************************/
+/** REGISTRATION TO BACKGROUND **/
+/********************************/
+
+/** Handles messages received from background. */
 function onBackgroundMessage(message) {
     console.debug("Sidebar: Message received from background", message);
     const type = message.type;
@@ -30,36 +40,50 @@ function onBackgroundMessage(message) {
     }
 }
 
-
 //Initialize the port to connect with background when the sidebar is
 //opened
 const port = browser.runtime.connect({ name: "sidebar-port" });
 port.onMessage.addListener(onBackgroundMessage);
 
 
-//Emits a messsage to the engine through the background when an item is 
-//removed
-function onRemove(itemId) {
-    port.postMessage({ type: Messaging.ITEM_REMOVED, itemId });
-}
 
-//Emits a messsage to the engine through the background when an item is 
-//selected/deselected
-function onToggle(itemId) {
-    port.postMessage({ type: Messaging.ITEM_TOGGLED, itemId});
-}
+/*************************/
+/** FILE INPUT HANDLING **/
+/*************************/
 
-//Emits a messsage to the engine through the background when files are
-//uploaded
+/** Emits a messsage to the engine through the background when files are
+ * uploaded. */
 function onFilesUploaded(files) {
     port.postMessage({ type: Messaging.FILES_UPLOADED, files });
 }
 
+//Setup of file input handle
 fileInput.addEventListener("change", () => {
     this.onFilesUploaded(fileInput.files);
 })
 
 
+
+/*************************************/
+/** ITEM SELECTION/REMOVAL HANDLING **/
+/*************************************/
+
+/** Emits a messsage to the engine through the background when an item is 
+ * removed */
+function onRemove(itemId) {
+    port.postMessage({ type: Messaging.ITEM_REMOVED, itemId });
+}
+
+/** Emits a messsage to the engine through the background when an item is 
+ * selected/deselected */
+function onToggle(itemId) {
+    port.postMessage({ type: Messaging.ITEM_TOGGLED, itemId});
+}
+
+
+/***********************/
+/** DISPLAY FUNCTIONS **/
+/***********************/
 
 function displayNoEngine() {
     noMenu.hidden = false;
@@ -154,4 +178,5 @@ function displayItems(itemsInfo) {
     }
 }
 
+//By default, no engine message is displayed.
 displayNoEngine();
