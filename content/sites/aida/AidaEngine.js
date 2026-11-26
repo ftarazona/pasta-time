@@ -58,10 +58,6 @@ class AidaEngine extends Engine {
             childList: true,
             subtree: true
         });
-
-        this.on("Ctrl+Alt+A", "add");
-        this.on("Ctrl+Alt+S", "save");
-        this.on("Ctrl+Alt+C", "close");
     }
 
     async init() {
@@ -81,10 +77,10 @@ class AidaEngine extends Engine {
     get checkButton()   { return this.fieldSearcher.search("checkButton"); }
     get closeButton()   { return this.fieldSearcher.search("closeButton"); }
 
-    add()   { Actions.click(this.addButton); }
-    check() { Actions.click(this.checkButton); }
-    save()  { this.check(); Actions.click(this.saveButton); }
-    close() { Actions.click(this.closeButton); }
+    new()       { Actions.click(this.addButton); }
+    check()     { Actions.click(this.checkButton); }
+    save()      { this.check(); Actions.click(this.saveButton); }
+    cancel()    { Actions.click(this.closeButton); }
 
 
 

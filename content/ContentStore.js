@@ -49,15 +49,7 @@ class ContentStore {
      * 
      * The engine is notified after loading. */
     async loadFiles(files) {
-        for(const file of files) {
-            const rawContent = await file.text();
-            try {
-                const content = JSON.parse(rawContent);
-                this.loadContent(content);
-            } catch(e) { 
-                alert("JSON parsing error:", e)
-            }
-        }
+        files.forEach(file => this.loadContent(file));
 
         this.engine.notifyInfoUpdated();
     }

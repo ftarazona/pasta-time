@@ -13,7 +13,7 @@ const noMenu = document.querySelector("#no-menu");
 const fileInput = document.querySelector("#file-input");
 const visualizerSection = document.querySelector("#visualizer-section");
 const itemListSection = document.querySelector("#file-list-section");
-
+const shortcutConfig = document.querySelector("#shortcuts-config");
 
 /********************************/
 /** REGISTRATION TO BACKGROUND **/
@@ -53,13 +53,24 @@ port.onMessage.addListener(onBackgroundMessage);
 
 /** Emits a messsage to the engine through the background when files are
  * uploaded. */
-function onFilesUploaded(files) {
-    port.postMessage({ type: Messaging.FILES_UPLOADED, files });
+async function onFilesUploaded(files) {
+    console.log(files);
+    const contents = [];
+    for(const file of files) {
+        const rawContent = await file.text();
+        try {
+            const content = JSON.parse(rawContent);
+            contents.push(content);
+        } catch(e) {
+            alert("JSON parsing error:", e);
+        }
+    }
+    port.postMessage({ type: Messaging.FILES_UPLOADED, files: contents });
 }
 
 //Setup of file input handle
-fileInput.addEventListener("change", () => {
-    this.onFilesUploaded(fileInput.files);
+fileInput.addEventListener("change", async () => {
+    await this.onFilesUploaded(fileInput.files);
 })
 
 
@@ -180,3 +191,19 @@ function displayItems(itemsInfo) {
 
 //By default, no engine message is displayed.
 displayNoEngine();
+
+
+async function openShortcutSettings() {
+    if (typeof browser !== "undefined" &&
+        browser.commands?.openShortcutSettings) {
+        // Firefox
+        await browser.commands.openShortcutSettings();
+    } else {
+        // Chrome
+        await chrome.tabs.create({
+            url: "chrome://extensions/shortcuts"
+        });
+    }
+}
+
+shortcutConfig.addEventListener("click", openShortcutSettings);

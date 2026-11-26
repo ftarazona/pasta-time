@@ -7,6 +7,9 @@
  * the sidebar and the commands.
  */
 
+try {
+    importScripts("../utils/messaging.js");
+} catch(_) {}
 
 class BackgroundManager {
 
@@ -23,8 +26,6 @@ class BackgroundManager {
 
         this.sidebarPort = null;
         this.enginePorts = new Map();
-
-        this.commandMappings = new Map();
     }
 
 
@@ -74,7 +75,20 @@ class BackgroundManager {
                         type: Messaging.BACKGROUND_READY_FOR_ENGINE
                     })
             )
-        )
+        ).catch(() => {});
+
+        console.log(typeof browser);
+        console.log(browser.commands);
+        console.log(browser.commands?.update);
+        if (typeof browser != null && browser.commands?.update != null) {
+            await browser.commands.update({ name: "previous", shortcut: "Ctrl+Alt+Left" });
+            await browser.commands.update({ name: "next", shortcut: "Ctrl+Alt+Right" });
+            await browser.commands.update({ name: "enter", shortcut: "Ctrl+Alt+E" });
+            await browser.commands.update({ name: "continue", shortcut: "Ctrl+Alt+C" });
+            await browser.commands.update({ name: "new", shortcut: "Ctrl+Alt+N" });
+            await browser.commands.update({ name: "save", shortcut: "Ctrl+Alt+S" });
+            await browser.commands.update({ name: "cancel", shortcut: "Ctrl+Alt+Z" });
+        }
     }
 
 
@@ -82,10 +96,6 @@ class BackgroundManager {
     /*************/
     /** GETTERS **/
     /*************/
-
-    get currentMapping() {
-        return this.commandMappings.get(this.curTabId);
-    }
 
     get currentEnginePort() {
         return this.enginePorts.get(this.curTabId);
@@ -105,38 +115,8 @@ class BackgroundManager {
     /** BROWSER COMMAND SETUP **/
     /***************************/
 
-    async showCommands() {
-        const commands = await browser.commands.getAll();
-        console.debug(`Background: Existing commands:`, commands);
-    }
-
-    async resetCommands() {
-        console.debug("Background: Resetting commands");
-        const commands = await browser.commands.getAll();
-        await Promise.all(
-            commands.map(
-                cmd => browser.commands.reset(cmd.name)
-            )
-        );
-    }
-
-    async setCommands() {
-        await this.resetCommands();
-
-        const mapping = this.currentMapping;
-        if(mapping == null) return;
-
-        console.debug("Background: Setting commands", mapping);
-        await Promise.all(
-            mapping.entries().map(
-                ([ name, { shortcut }]) =>
-                    browser.commands.update({ name, shortcut })
-            )
-        );
-    }
-
     onCommand(name) {
-        const method = this.currentMapping?.get(name).method;
+        const method = name;
         if(method == null) return;
 
         this.currentEnginePort?.postMessage({
@@ -151,33 +131,6 @@ class BackgroundManager {
     /** ENGINES LIFECYCLE **/
     /***********************/
 
-    /** Sets up a new mapping for the tab of the engine.
-     * THIS DOES NOT EFFECTIVELY SET BROWSER COMMANDS */
-    registerEngine(tabId, mapping) {
-        if(mapping.length > BackgroundManager.MAX_N_ACTIONS) {
-            return false;
-        }
-
-        this.commandMappings.set(
-            tabId,
-            new Map(
-                mapping.entries().map(
-                    ([ shortcut, method ], idx) =>
-                        [
-                            "action-" + (idx + 1),
-                            { shortcut, method }
-                        ]
-                )
-            )
-        )
-
-        return true;
-    }
-
-    deleteEngine(tabId) {
-        this.commandMappings.delete(tabId);
-    }
-
 
     async onEngineMessage(message, port) {
         console.debug("Background: Message received from engine", message);
@@ -191,23 +144,14 @@ class BackgroundManager {
         } else if(type === Messaging.ENGINE_REGISTRATION_REQUEST) {
 
             const tabId = port.sender.tab.id;
-            const { mapping } = message;
 
-            const success = this.registerEngine(tabId, mapping);
-            if(success) {
-                this.enginePorts.get(tabId)?.postMessage({
-                    type: Messaging.REGISTRATION_SUCCESS
-                });
-            } else {
-                this.enginePorts.get(tabId)?.postMessage({
-                    type: Messaging.REGISTRATION_FAILURE
-                });
-            }
+            this.enginePorts.get(tabId)?.postMessage({
+                type: Messaging.REGISTRATION_SUCCESS
+            });
 
             //Tabs may be existing when launching the extension.
             if(port.sender.tab.active) {
                 this.curTabId = tabId;
-                await this.setCommands();
             }
 
         }
@@ -220,8 +164,6 @@ class BackgroundManager {
         }
 
         const tabId = p.sender.tab.id;
-        if(tabId === this.curTabId) 
-            await this.resetCommands();
 
         this.enginePorts.delete(tabId);
     }
@@ -296,9 +238,6 @@ class BackgroundManager {
     /** Switches mapping and updates the requests the engine to provide
      * updated info to sidebar. */
     async onTabActivated(tab) {
-        if(this.curTabId !== tab.tabId) {
-            await this.setCommands();
-        }
 
         this.curTabId = tab.tabId;
 

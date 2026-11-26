@@ -14,7 +14,8 @@
         "activeTab",
         "scripting",
         "storage",
-        "tabs"
+        "tabs",
+        "sidePanel"
     ],
 
     "sidebar_action": {
@@ -24,6 +25,16 @@
         },
         "default_title": "Pasta Time",
         "default_panel": "panel/panel.html",
+        "open_at_install": false
+    },
+
+    "side_panel": {
+        "default_icon": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png"
+        },
+        "default_title": "Pasta Time",
+        "default_path": "panel/panel.html",
         "open_at_install": false
     },
 
@@ -63,40 +74,40 @@
     ],
 
     "background": {
-        "scripts": [
-            "utils/messaging.js",
-            "background.js"
-        ]
+        "service_worker": "background.js",
+        "scripts": ["utils/messaging.js", "background.js"]
     },
 
     "commands": {
-        "action-1": {
-            "suggested_key": { "default": "Ctrl+Alt+1" },
-            "description": "Commande personnalisée 1"
+        "previous": {
+            "suggested_key": {
+                "default": "Ctrl+Left"
+            },
+            "description": "Champ précédent"
         },
-        "action-2": {
-            "suggested_key": { "default": "Ctrl+Alt+2" },
-            "description": "Commande personnalisée 2"
+        "next": {
+            "suggested_key": {
+                "default": "Ctrl+Right"
+            },
+            "description": "Champ suivant"
         },
-        "action-3": {
-            "suggested_key": { "default": "Ctrl+Alt+3" },
-            "description": "Commande personnalisée 3"
+        "enter": {
+            "suggested_key": {
+                "default": "Ctrl+E"
+            },
+            "description": "Entrer le champ"
         },
-        "action-4": {
-            "suggested_key": { "default": "Ctrl+Alt+4" },
-            "description": "Commande personnalisée 4"
+        "continue": {
+            "description": "Page suivante"
         },
-        "action-5": {
-            "suggested_key": { "default": "Ctrl+Alt+5" },
-            "description": "Commande personnalisée 5"
+        "new": {
+            "description": "Nouveau"
         },
-        "action-6": {
-            "suggested_key": { "default": "Ctrl+Alt+6" },
-            "description": "Commande personnalisée 6"
+        "save": {
+            "description": "Sauvegarder"
         },
-        "action-7": {
-            "suggested_key": { "default": "Ctrl+Alt+7" },
-            "description": "Commande personnalisée 7"
+        "cancel": {
+            "description": "Annuler"
         }
     },
 

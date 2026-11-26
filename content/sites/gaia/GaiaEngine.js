@@ -27,8 +27,6 @@ class GaiaEngine extends Engine {
 
     constructor() {
         super();
-
-        this.on("Ctrl+Alt+C", "continue")
     }
 
     init() {
